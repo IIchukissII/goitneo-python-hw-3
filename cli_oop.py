@@ -17,15 +17,12 @@ class Name(Field):
 
 class Phone(Field):
     def __init__(self, number):
-        if len(str(number)) == 10:
-            self.value = number
-        else:
-            raise ValueError("Phone number should have 10 digits")
+        self.value = number
 
 
 class Birthday(Field):
     def __init__(self, birthday):
-        self.value = ', '.join(re.findall('\d{2,}', birthday))
+        self.value = birthday
 
 
 class Record:
@@ -35,11 +32,19 @@ class Record:
         self.birthday = None
 
     def add_birthday(self, birthday):
-        self.birthday = Birthday(birthday)
+        if re.match('\d{2}.\d{2}.\d{4}', birthday):
+            self.birthday = Birthday(birthday)
+        else:
+            raise ValueError("Birthday sholud be in format DD.MM.YYYY")   
+        
 
     def add_phone(self, number):
-        phone = Phone(number)
-        self.phones.append(phone)
+        if re.match("\d{10}", number):
+            phone = Phone(number)
+            self.phones.append(phone)
+        else:
+            raise ValueError("Phone number should have 10 digits")        
+        
 
     def remove_phone(self, number):
         for phone in self.phones:
@@ -62,7 +67,10 @@ class Record:
             return f"No phone number found for {self.name}"
 
     def __str__(self):
-        return f"Contact name: {self.name.value}, birthday {self.birthday.value}, phones: {'; '.join(p.value for p in self.phones)}"
+        if self.birthday:
+            return f"Contact name: {self.name.value}, birthday {self.birthday.value}, phones: {'; '.join(p.value for p in self.phones)}"
+        else:
+            return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}"
 
 
 class AddressBook(UserDict):
@@ -89,7 +97,7 @@ if __name__ == '__main__':
     john_record = Record("John")
     john_record.add_phone("1234567890")
     john_record.add_phone("5555555555")
-    john_record.add_birthday("95.9ddd5.2181")
+    john_record.add_birthday("95.95.2181")
 
     # Додавання запису John до адресної книги
     book.add_record(john_record)
@@ -97,7 +105,7 @@ if __name__ == '__main__':
     # Створення та додавання нового запису для Jane
     jane_record = Record("Jane")
     jane_record.add_phone("9876543210")
-    jane_record.add_birthday("95dfg.dfgf95.2385")
+    jane_record.add_birthday("95.95.2385")
     book.add_record(jane_record)
 
     # Виведення всіх записів у книзі
