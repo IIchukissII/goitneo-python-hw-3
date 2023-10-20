@@ -12,7 +12,7 @@ class ContactNameError(Exception):
 def input_error(func):
     def inner(*args, **kwargs):
         try:
-            if 'add_contact' in func.__name__:
+            if "add_contact" in func.__name__:
                 name, phone = args[0]
                 if not phone.isdigit():
                     raise TelNumberError("Telephone number should be a number")
@@ -25,6 +25,7 @@ def input_error(func):
             return f"Exception occurred: {e}"
         except ContactNameError as e:
             return f"Exception occurred: {e}"
+
     return inner
 
 
@@ -38,35 +39,36 @@ def parse_input(user_input):
 def add_contact(args, book):
     name, phone = args
     if name not in book.data:
-        new = Record(name)
-        new.add_phone(phone)
-        book.add_record(new)
+        record = Record(name)
+        record.add_phone(phone)
+        book.add_record(record)
     else:
-        new = book.find(name)
-        new.add_phone(phone)
-        book.add_record(new)
-    return f'Contact {name} with phone number: {phone} added.'
+        record = book.find(name)
+        record.add_phone(phone)
+        book.add_record(record)
+    return f"Contact {name} with phone number: {phone} added."
+
 
 @input_error
-def show_phone(args, contacts):
+def show_phone(args, book):
     name = args[0]
-    if name in contacts:
-        return f'Name: {name}, Phone Number: {contacts[name]}'
+    if name in book.data:
+        result = book.find(name)
+        return f"Name: {name}, Phone Number: {str(result.phones)}"
     else:
-        return f'No phone number found for {name}.'
- 
-  
+        return f"No phone number found for {name}."
+
+
 def show_all(book):
     if not book:
-        return 'No contacts found.'
-    text = "{:.<15}{:<10}\n".format('Name', 'Phone Number')
-#    print(book.data.items())
+        return "No contacts found."
+    text = "{:.<25}{:<40}\n".format("Name", "Phone Number")
     for name, record in book.data.items():
         text += str(record) + "\n"
-#        text += "{:.<15}{:<10}\n".format(name, phone)
+    #        text += (name, phone)
     return text
- 
-  
+
+
 def main():
     book = AddressBook()
     print("Welcome to the assistant bot!")
@@ -86,7 +88,9 @@ def main():
         elif command == "all":
             print(show_all(book))
         else:
-            print("""Invalid command. Available commands: hello, add, phone, all, close, exit""")
+            print(
+                """Invalid command. Available commands: hello, add, phone, all, close, exit"""
+            )
 
 
 if __name__ == "__main__":

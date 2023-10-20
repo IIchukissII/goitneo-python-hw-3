@@ -1,4 +1,6 @@
 from collections import UserDict
+import datetime
+import json
 import re
 
 
@@ -32,32 +34,36 @@ class Record:
         self.birthday = None
 
     def add_birthday(self, birthday):
-        if re.match('\d{2}.\d{2}.\d{4}', birthday):
+        if re.match("\d{2}.\d{2}.\d{4}", birthday):
             self.birthday = Birthday(birthday)
         else:
-            raise ValueError("Birthday sholud be in format DD.MM.YYYY")   
-        
+            raise ValueError("Birthday sholud be in format DD.MM.YYYY")
+
+    def show_birthday(self):
+        if self.birthday:
+            return self.birthday
+        else:
+            return f"There is no birhday for {self.name} saved"
 
     def add_phone(self, number):
         if re.match("\d{10}", number):
             phone = Phone(number)
             self.phones.append(phone)
         else:
-            raise ValueError("Phone number should have 10 digits")        
-        
+            raise ValueError("Phone number should have 10 digits")
 
     def remove_phone(self, number):
         for phone in self.phones:
             if phone.value == number:
                 self.phones.remove(phone)
-#               return f"Phone number {number} removed for {self.name.value}."
+        #               return f"Phone number {number} removed for {self.name.value}."
         return f"No phone number {number} found for {self.name.value}."
 
     def edit_phone(self, old_number, new_number):
         for phone in self.phones:
             if phone.value == old_number:
                 phone.value = new_number
-#               return f"Phone number {old_number} updated to {new_number}."
+        #               return f"Phone number {old_number} updated to {new_number}."
         return f"No phone number {old_number} found for {self.name.value}."
 
     def find_phone(self, number):
@@ -67,10 +73,26 @@ class Record:
             return f"No phone number found for {self.name}"
 
     def __str__(self):
-        if self.birthday:
-            return f"Contact name: {self.name.value}, birthday {self.birthday.value}, phones: {'; '.join(p.value for p in self.phones)}"
+        if not self.birthday:
+            message = "{:<25}{:<40}\n".format("Name", "Telephone Number")
+            message += "{:.<25}{:<40}\n".format(
+                (self.name.value), ("; ".join(p.value for p in self.phones))
+            )
+
+            return message
         else:
-            return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}"
+            message = "{:<25}{:<15}{:<15}\n".format(
+                "Name", "Birthday", "Telephone Number"
+            )
+            message += "{:.<25}{:.<15}{:<15}\n".format(
+                (self.name.value),
+                (self.birthday.value),
+                ("; ".join(p.value for p in self.phones)),
+            )
+            return message
+
+
+#        return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}"
 
 
 class AddressBook(UserDict):
@@ -82,14 +104,55 @@ class AddressBook(UserDict):
             contact = self.data[name]
             return contact
         else:
-            return f'No phone number found for {name}.'
+            return f"No conatact with {name} found."
 
     def delete(self, name):
         if name in self.data:
             del self.data[name]
 
+    def get_birthdays_per_week(self, file):
+        data = json.load(open(file))
+        current_date = datetime.date.today()
+        people_with_birthday_next_week = []
+        people_with_birthday_next_week_dict = {}
+        message = f'Today is {current_date.strftime("%A %d %B %Y")}\n'
+        message += "The following people have their birthdays next week:\n"
 
-if __name__ == '__main__':
+        for person in data:
+            person_birthday = person["birthday"].split(".")
+            person_birthday = datetime.date(
+                year=int(person_birthday[2]),
+                month=int(person_birthday[1]),
+                day=int(person_birthday[0]),
+            )
+            birthday_this_year = person_birthday.replace(year=current_date.year)
+
+            if birthday_this_year < current_date:
+                birthday_this_year = person_birthday.replace(year=current_date.year + 1)
+
+            delta_weeks = (birthday_this_year - current_date).days // 7
+
+            if delta_weeks == 0 and (birthday_this_year.weekday() in (5, 6)):
+                people_with_birthday_next_week.append(["Monday", person["name"]])
+            elif delta_weeks == 1 and not (birthday_this_year.weekday() in (5, 6)):
+                people_with_birthday_next_week.append(
+                    [birthday_this_year.strftime("%A"), person["name"]]
+                )
+
+        for people in people_with_birthday_next_week:
+            day = people[0]
+            if day not in people_with_birthday_next_week_dict:
+                people_with_birthday_next_week_dict[day] = []
+            people_with_birthday_next_week_dict[day].append(people[1])
+
+        #    message += "{:>15}: {:<}\n".format('Day of week', 'Name')
+        for key, value in people_with_birthday_next_week_dict.items():
+            message += "{:<15}: {:<}\n".format(key, ", ".join(value))
+
+        return message
+
+
+if __name__ == "__main__":
     # Створення нової адресної книги
     book = AddressBook()
 
@@ -97,7 +160,7 @@ if __name__ == '__main__':
     john_record = Record("John")
     john_record.add_phone("1234567890")
     john_record.add_phone("5555555555")
-    john_record.add_birthday("95.95.2181")
+    #    john_record.add_birthday("95.95.2181")
 
     # Додавання запису John до адресної книги
     book.add_record(john_record)
@@ -127,6 +190,9 @@ if __name__ == '__main__':
     # Пошук конкретного телефону у записі John
     found_phone = john.find_phone("5555555555")
     print(f"{john.name}: {found_phone}")  # Виведення: John: 5555555555
+    # Пошук дня народження у записі John
+    john_birthday = john.show_birthday()
+    print(f"{john.name}: {john_birthday}")
 
     # Знаходження та виведення телефону для Jane
     jane = book.find("Jane")
@@ -137,3 +203,5 @@ if __name__ == '__main__':
     # Знаходження та виведення телефону для Jane
     jane = book.find("Jane")
     print(jane)  # Виведення: No phone number found for Jane.
+
+    print(book.get_birthdays_per_week("test_data.json"))
