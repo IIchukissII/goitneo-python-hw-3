@@ -12,6 +12,7 @@ def input_error(func):
             return func(*args, **kwargs)
         except ValueError:
             return "Please provide a name and phone number."
+
     return inner
 
 
@@ -22,8 +23,8 @@ def parse_input(user_input):
 
 
 def load_data():
-    with open(FILE, 'r') as f:
-        dict_reader = DictReader(f, delimiter=';')
+    with open(FILE, "r") as f:
+        dict_reader = DictReader(f, delimiter=";")
         contact_data = list(dict_reader)
 
     for person in contact_data:
@@ -63,15 +64,15 @@ def write_to_file(book):
             }
         users_list.append(data)
     with open(FILE, "w") as csvfile:
-        writer = DictWriter(csvfile, fieldnames=field_names, delimiter=';')
+        writer = DictWriter(csvfile, fieldnames=field_names, delimiter=";")
         writer.writeheader()
         writer.writerows(users_list)
 
 
 @input_error
 def add_contact(args, book):
-    name = ' '.join(re.findall("[a-zA-Z]+", str(args)))
-    phone = ' '.join(re.findall("\d{10}", str(args)))
+    name = " ".join(re.findall("[a-zA-Z]+", str(args)))
+    phone = " ".join(re.findall("\d{10}", str(args)))
     if name not in book.data:
         record = Record(name)
         record.add_phone(phone)
@@ -85,7 +86,7 @@ def add_contact(args, book):
 
 @input_error
 def show_phone(args, book):
-    name = ' '.join(args)
+    name = " ".join(args)
     if name in book.data:
         result = book.find(name)
         message = "{:<25}{:<40}\n".format("Name", "Telephone Number")
@@ -100,15 +101,17 @@ def show_phone(args, book):
 @input_error
 def edit_phone(args, book):
     try:
-        name = ' '.join(re.findall("[a-zA-Z]+", str(args)))
+        name = " ".join(re.findall("[a-zA-Z]+", str(args)))
         old_number, new_number = re.findall("\d{10}", str(args))
-    except:
+    except ValueError:
         return "Input shoud be in format NAME, OLD NUMBER, NEW NUMBER!"
     if name in book.data:
         record = book.find(name)
         record.edit_phone(old_number, new_number)
         book.add_record(record)
-        return f"For contact {name} telephone number {old_number} changed to {new_number}"
+        return (
+            f"For contact {name} telephone number {old_number} changed to {new_number}"
+        )
     else:
         return f"No contact data with {name} found"
 
@@ -125,9 +128,9 @@ def show_all(book):
 @input_error
 def add_birthday(args, book):
     try:
-        name = ' '.join(re.findall("[a-zA-Z]+", str(args)))
-        birthday = ' '.join(re.findall("\d{2}.\d{2}.\d{4}", str(args)))
-    except:
+        name = " ".join(re.findall("[a-zA-Z]+", str(args)))
+        birthday = " ".join(re.findall("\d{2}.\d{2}.\d{4}", str(args)))
+    except ValueError:
         return "Input shoud be in format NAME, BIRTHDAY!"
     if name in book.data:
         record = book.find(name)
@@ -140,14 +143,14 @@ def add_birthday(args, book):
 @input_error
 def show_birthday(args, book):
     try:
-        name = ' '.join(re.findall("[a-zA-Z]+", str(args)))
-    except:
+        name = " ".join(re.findall("[a-zA-Z]+", str(args)))
+    except ValueError:
         return "Please enter a name!"
     if name in book.data:
         record = book.find(name)
         try:
             birthday = record.show_birthday()
-        except:
+        except ValueError:
             return f"No birthday for {name} saved"
         return f"{name} has birthday at {birthday.value}"
     else:
@@ -187,22 +190,21 @@ def main():
             print(show_all(book))
         else:
             print(
-                """Invalid command.                
-                Available commands:                 
-                >>> hello: Отримати вітання від бота.
-                >>> add [ім'я] [телефон]: Додати новий контакт з іменем та телефонним номером.
-                >>> phone [ім'я]: Показати телефонний номер для вказаного контакту.
-                >>> change [ім'я] [новий телефон]: Змінити телефонний номер для вказаного контакту.
-                >>> add-birthday [ім'я] [дата народження]: Додати дату народження для вказаного контакту.
-                >>> show-birthday [ім'я]: Показати дату народження для вказаного контакту.
-                >>> birthdays: Показати дні народження, які відбудуться протягом наступного тижня.
-                >>> all: Показати всі контакти в адресній книзі.
-                >>> close або exit: Закрити програму.
+                """Invalid command.
+                Available commands:
+                >>> hello: Get a greeting from the bot.
+                >>> add [name] [phone]: Add a new contact with a name and phone number.
+                >>> phone [name]: Show the phone number for the specified contact.
+                >>> change [name] [new phone]: Change the phone number for the specified contact.
+                >>> add-birthday [name] [birthday]: Add a birthday date for the specified contact.
+                >>> show-birthday [name]: Show the birthday for the specified contact.
+                >>> birthdays: Show upcoming birthdays for the next week.
+                >>> all: Show all contacts in the address book.
+                >>> close or exit: Close the program.
                 """
             )
 
 
 if __name__ == "__main__":
-
     load_data()
     main()

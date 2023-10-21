@@ -55,14 +55,14 @@ class Record:
         for phone in self.phones:
             if phone.value == number:
                 self.phones.remove(phone)
-        #               return f"Phone number {number} removed for {self.name.value}."
+        # return f"Phone number {number} removed for {self.name.value}."
         return f"No phone number {number} found for {self.name.value}."
 
     def edit_phone(self, old_number, new_number):
         for phone in self.phones:
             if phone.value == old_number:
                 phone.value = new_number
-        #               return f"Phone number {old_number} updated to {new_number}."
+        # return f"Phone number {old_number} updated to {new_number}."
         return f"No phone number {old_number} found for {self.name.value}."
 
     def find_phone(self, number):
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     print(f"{john.name}: {found_phone}")  # Виведення: John: 5555555555
     # Пошук дня народження у записі John
     john_birthday = john.show_birthday()
-    print(f"{john.name}: {john_birthday}") # Виведення: John: 26.10.2011
+    print(f"{john.name}: {john_birthday}")  # Виведення: John: 26.10.2011
 
     # Знаходження та виведення телефону для Jane
     jane = book.find("Jane")
