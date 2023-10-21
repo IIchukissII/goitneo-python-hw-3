@@ -1,6 +1,5 @@
 from collections import UserDict
 import datetime
-import json
 import re
 
 
@@ -92,9 +91,6 @@ class Record:
             return message
 
 
-#        return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}"
-
-
 class AddressBook(UserDict):
     def add_record(self, contact):
         self.data[contact.name.value] = contact
@@ -110,34 +106,35 @@ class AddressBook(UserDict):
         if name in self.data:
             del self.data[name]
 
-    def get_birthdays_per_week(self, file):
-        data = json.load(open(file))
+    def get_birthdays_per_week(self):
         current_date = datetime.date.today()
         people_with_birthday_next_week = []
         people_with_birthday_next_week_dict = {}
         message = f'Today is {current_date.strftime("%A %d %B %Y")}\n'
         message += "The following people have their birthdays next week:\n"
 
-        for person in data:
-            person_birthday = person["birthday"].split(".")
-            person_birthday = datetime.date(
-                year=int(person_birthday[2]),
-                month=int(person_birthday[1]),
-                day=int(person_birthday[0]),
-            )
-            birthday_this_year = person_birthday.replace(year=current_date.year)
-
-            if birthday_this_year < current_date:
-                birthday_this_year = person_birthday.replace(year=current_date.year + 1)
-
-            delta_weeks = (birthday_this_year - current_date).days // 7
-
-            if delta_weeks == 0 and (birthday_this_year.weekday() in (5, 6)):
-                people_with_birthday_next_week.append(["Monday", person["name"]])
-            elif delta_weeks == 1 and not (birthday_this_year.weekday() in (5, 6)):
-                people_with_birthday_next_week.append(
-                    [birthday_this_year.strftime("%A"), person["name"]]
+        for person in self.data:
+            if not self.data[person].birthday:
+                continue
+            else:
+                person_birthday = self.data[person].birthday.value.split(".")
+                person_birthday = datetime.date(
+                    year=int(person_birthday[2]),
+                    month=int(person_birthday[1]),
+                    day=int(person_birthday[0]),
                 )
+                birthday_this_year = person_birthday.replace(
+                    year=current_date.year)
+
+                delta_weeks = (birthday_this_year.isocalendar()[
+                               1] - current_date.isocalendar()[1])
+
+                if delta_weeks == 0 and (birthday_this_year.weekday() in (5, 6)):
+                    people_with_birthday_next_week.append(["Monday", person])
+                elif delta_weeks == 1 and not (birthday_this_year.weekday() in (5, 6)):
+                    people_with_birthday_next_week.append(
+                        [birthday_this_year.strftime("%A"), person]
+                    )
 
         for people in people_with_birthday_next_week:
             day = people[0]
@@ -145,7 +142,6 @@ class AddressBook(UserDict):
                 people_with_birthday_next_week_dict[day] = []
             people_with_birthday_next_week_dict[day].append(people[1])
 
-        #    message += "{:>15}: {:<}\n".format('Day of week', 'Name')
         for key, value in people_with_birthday_next_week_dict.items():
             message += "{:<15}: {:<}\n".format(key, ", ".join(value))
 
@@ -160,7 +156,7 @@ if __name__ == "__main__":
     john_record = Record("John")
     john_record.add_phone("1234567890")
     john_record.add_phone("5555555555")
-    #    john_record.add_birthday("95.95.2181")
+    john_record.add_birthday("26.10.2011")
 
     # Додавання запису John до адресної книги
     book.add_record(john_record)
@@ -168,7 +164,7 @@ if __name__ == "__main__":
     # Створення та додавання нового запису для Jane
     jane_record = Record("Jane")
     jane_record.add_phone("9876543210")
-    jane_record.add_birthday("95.95.2385")
+    jane_record.add_birthday("25.10.2005")
     book.add_record(jane_record)
 
     # Виведення всіх записів у книзі
@@ -192,7 +188,7 @@ if __name__ == "__main__":
     print(f"{john.name}: {found_phone}")  # Виведення: John: 5555555555
     # Пошук дня народження у записі John
     john_birthday = john.show_birthday()
-    print(f"{john.name}: {john_birthday}")
+    print(f"{john.name}: {john_birthday}") # Виведення: John: 26.10.2011
 
     # Знаходження та виведення телефону для Jane
     jane = book.find("Jane")
@@ -204,4 +200,4 @@ if __name__ == "__main__":
     jane = book.find("Jane")
     print(jane)  # Виведення: No phone number found for Jane.
 
-    print(book.get_birthdays_per_week("test_data.json"))
+    print(book.get_birthdays_per_week())

@@ -1,31 +1,17 @@
 from cli_oop import AddressBook, Record
+from csv import DictReader, DictWriter
+import re
 
-
-class TelNumberError(Exception):
-    pass
-
-
-class ContactNameError(Exception):
-    pass
+FILE = "contact.csv"
+book = AddressBook()
 
 
 def input_error(func):
     def inner(*args, **kwargs):
         try:
-            if "add_contact" in func.__name__:
-                name, phone = args[0]
-                if not phone.isdigit():
-                    raise TelNumberError("Telephone number should be a number")
-                if not name.isalpha():
-                    raise ContactNameError("Name should not be a number")
             return func(*args, **kwargs)
         except ValueError:
             return "Please provide a name and phone number."
-        except TelNumberError as e:
-            return f"Exception occurred: {e}"
-        except ContactNameError as e:
-            return f"Exception occurred: {e}"
-
     return inner
 
 
@@ -35,9 +21,54 @@ def parse_input(user_input):
     return cmd, *args
 
 
+def load_data():
+    with open(FILE, 'r') as f:
+        dict_reader = DictReader(f, delimiter=';')
+        contact_data = list(dict_reader)
+
+    for person in contact_data:
+        for key, value in person.items():
+            if key == "name":
+                record = Record(value)
+            elif key == "phone":
+                if len(value) > 20:
+                    for v in value.split(","):
+                        record.add_phone(v.strip())
+                else:
+                    record.add_phone(value)
+            elif key == "birthday":
+                record.add_birthday(value)
+            else:
+                continue
+            book.add_record(record)
+
+
+def write_to_file(book):
+    field_names = ["name", "phone", "birthday"]
+    users_list = []
+    for person in book.data:
+        if book.data[person].birthday:
+            data = {
+                "name": book.data[person].name.value,
+                "phone": ", ".join(p.value for p in book.data[person].phones),
+                "birthday": book.data[person].birthday.value,
+            }
+        else:
+            data = {
+                "name": book.data[person].name.value,
+                "phone": ", ".join(p.value for p in book.data[person].phones),
+            }
+        users_list.append(data)
+    with open(FILE, "w") as csvfile:
+        writer = DictWriter(csvfile, fieldnames=field_names, delimiter=';')
+        writer.writeheader()
+        writer.writerows(users_list)
+
+
 @input_error
 def add_contact(args, book):
-    name, phone = args
+    name = ' '.join(re.findall("[a-zA-Z]+", str(args)))
+    phone = ' '.join(re.findall("\d{10}", str(args)))
     if name not in book.data:
         record = Record(name)
         record.add_phone(phone)
@@ -51,32 +82,88 @@ def add_contact(args, book):
 
 @input_error
 def show_phone(args, book):
-    name = args[0]
+    name = ' '.join(args)
     if name in book.data:
         result = book.find(name)
-        return f"Name: {name}, Phone Number: {str(result.phones)}"
+        message = "{:<25}{:<40}\n".format("Name", "Telephone Number")
+        message += "{:.<25}{:<40}\n".format(
+            (result.name.value), ("; ".join(p.value for p in result.phones))
+        )
+        return message
     else:
-        return f"No phone number found for {name}."
+        return f"No phone number found for {result.name.value}."
+
+
+@input_error
+def edit_phone(args, book):
+    try:
+        name = ' '.join(re.findall("[a-zA-Z]+", str(args)))
+        old_number, new_number = re.findall("\d{10}", str(args))
+    except:
+        return "Input shoud be in format NAME, OLD NUMBER, NEW NUMBER!"
+    if name in book.data:
+        record = book.find(name)
+        record.edit_phone(old_number, new_number)
+        book.add_record(record)
+        return f"For contact {name} telephone number {old_number} changed to {new_number}"
+    else:
+        return f"No contact data with {name} found"
 
 
 def show_all(book):
     if not book:
         return "No contacts found."
-    text = "{:.<25}{:<40}\n".format("Name", "Phone Number")
+    message = "Hier ist the full list: \n"
     for name, record in book.data.items():
-        text += str(record) + "\n"
-    #        text += (name, phone)
-    return text
+        message += str(record) + "\n"
+    return message
+
+
+@input_error
+def add_birthday(args, book):
+    try:
+        name = ' '.join(re.findall("[a-zA-Z]+", str(args)))
+        birthday = ' '.join(re.findall("\d{2}.\d{2}.\d{4}", str(args)))
+    except:
+        return "Input shoud be in format NAME, BIRTHDAY!"
+    if name in book.data:
+        record = book.find(name)
+        record.add_birthday(birthday)
+    else:
+        return f"No contact data with {name} found"
+    return f"For {name} birthday at {birthday} added."
+
+
+@input_error
+def show_birthday(args, book):
+    try:
+        name = ' '.join(re.findall("[a-zA-Z]+", str(args)))
+    except:
+        return "Please enter a name!"
+    if name in book.data:
+        record = book.find(name)
+        try:
+            birthday = record.show_birthday()
+        except:
+            return f"No birthday for {name} saved"
+        return f"{name} has birthday at {birthday.value}"
+    else:
+        return f"No contact data with {name} found"
+
+
+def birthdays(book):
+    return book.get_birthdays_per_week()
 
 
 def main():
-    book = AddressBook()
     print("Welcome to the assistant bot!")
+
     while True:
         user_input = input("Enter a command: ")
         command, *args = parse_input(user_input)
 
         if command in ["close", "exit"]:
+            write_to_file(book)
             print("Good bye!")
             break
         elif command == "hello":
@@ -85,13 +172,34 @@ def main():
             print(add_contact(args, book))
         elif command == "phone":
             print(show_phone(args, book))
+        elif command == "change":
+            print(edit_phone(args, book))
+        elif command == "add-birthday":
+            print(add_birthday(args, book))
+        elif command == "show-birthday":
+            print(show_birthday(args, book))
+        elif command == "birthdays":
+            print(birthdays(book))
         elif command == "all":
             print(show_all(book))
         else:
             print(
-                """Invalid command. Available commands: hello, add, phone, all, close, exit"""
+                """Invalid command.                
+                Available commands:                 
+                >>> hello: Отримати вітання від бота.
+                >>> add [ім'я] [телефон]: Додати новий контакт з іменем та телефонним номером.
+                >>> phone [ім'я]: Показати телефонний номер для вказаного контакту.
+                >>> change [ім'я] [новий телефон]: Змінити телефонний номер для вказаного контакту.
+                >>> add-birthday [ім'я] [дата народження]: Додати дату народження для вказаного контакту.
+                >>> show-birthday [ім'я]: Показати дату народження для вказаного контакту.
+                >>> birthdays: Показати дні народження, які відбудуться протягом наступного тижня.
+                >>> all: Показати всі контакти в адресній книзі.
+                >>> close або exit: Закрити програму.
+                """
             )
 
 
 if __name__ == "__main__":
+
+    load_data()
     main()
