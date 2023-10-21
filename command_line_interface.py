@@ -37,7 +37,10 @@ def load_data():
                 else:
                     record.add_phone(value)
             elif key == "birthday":
-                record.add_birthday(value)
+                if person[key]:
+                    record.add_birthday(value)
+                else:
+                    continue
             else:
                 continue
             book.add_record(record)
