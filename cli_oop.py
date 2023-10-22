@@ -123,11 +123,11 @@ class AddressBook(UserDict):
                     month=int(person_birthday[1]),
                     day=int(person_birthday[0]),
                 )
-                birthday_this_year = person_birthday.replace(
-                    year=current_date.year)
+                birthday_this_year = person_birthday.replace(year=current_date.year)
 
-                delta_weeks = (birthday_this_year.isocalendar()[
-                               1] - current_date.isocalendar()[1])
+                delta_weeks = (
+                    birthday_this_year.isocalendar()[1] - current_date.isocalendar()[1]
+                )
 
                 if delta_weeks == 0 and (birthday_this_year.weekday() in (5, 6)):
                     people_with_birthday_next_week.append(["Monday", person])
